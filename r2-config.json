@@ -1,0 +1,299 @@
+{
+  "system": {
+    "host-name": "SRX-C1",
+    "root-authentication": {
+      "encrypted-password": "$1$SR3ZnULH$cgcdTPXK7ModJJor1WKyE1"
+    },
+    "services": {
+      "ssh": {},
+      "dhcp": {
+        "pool": {
+          "192.168.3.0/24": {
+            "address-range": {
+              "low": "192.168.3.100",
+              "high": "192.168.3.200"
+            },
+            "name-server": [
+              "8.8.8.8"
+            ],
+            "router": [
+              "192.168.3.1"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "interfaces": {
+    "ge-0/0/1": {
+      "description": "USERLAN routed gateway - patch to ge-0/0/10",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "192.168.3.1/24"
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/2": {
+      "description": "DMZ routed gateway - patch to ge-0/0/6",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "192.168.4.1/24"
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/3": {
+      "description": "LabLan uplink to R3",
+      "unit": {
+        "0": {
+          "family": {
+            "inet": {
+              "address": "10.56.16.85/22"
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/6": {
+      "description": "mySwitch1Vlan DMZ - patch from ge-0/0/2",
+      "unit": {
+        "0": {
+          "family": {
+            "ethernet-switching": {
+              "vlan": {
+                "members": "mySwitch1Vlan"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/7": {
+      "description": "mySwitch1Vlan DMZ - myWebServer PC3",
+      "unit": {
+        "0": {
+          "family": {
+            "ethernet-switching": {
+              "vlan": {
+                "members": "mySwitch1Vlan"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/10": {
+      "description": "mySwitch2Vlan USERLAN - patch from ge-0/0/1",
+      "unit": {
+        "0": {
+          "family": {
+            "ethernet-switching": {
+              "vlan": {
+                "members": "mySwitch2Vlan"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/11": {
+      "description": "mySwitch2Vlan USERLAN - PC1",
+      "unit": {
+        "0": {
+          "family": {
+            "ethernet-switching": {
+              "vlan": {
+                "members": "mySwitch2Vlan"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ge-0/0/12": {
+      "description": "mySwitch2Vlan USERLAN - PC2",
+      "unit": {
+        "0": {
+          "family": {
+            "ethernet-switching": {
+              "vlan": {
+                "members": "mySwitch2Vlan"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "routing-options": {
+    "static": {
+      "route": {
+        "0.0.0.0/0": {
+          "next-hop": "10.56.16.1"
+        }
+      }
+    }
+  },
+  "security": {
+    "nat": {
+      "source": {
+        "rule-set": {
+          "soho": {
+            "from": {
+              "zone": [
+                "USERLAN",
+                "DMZ"
+              ]
+            },
+            "to": {
+              "zone": "untrust"
+            },
+            "rule": {
+              "hide-inside": {
+                "match": {
+                  "source-address": "0.0.0.0/0"
+                },
+                "then": {
+                  "source-nat": {
+                    "interface": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "destination": {
+        "pool": {
+          "webserver-pool": {
+            "address": "192.168.4.10/32"
+          }
+        },
+        "rule-set": {
+          "from-lablan": {
+            "from": {
+              "zone": "untrust"
+            },
+            "rule": {
+              "to-web": {
+                "match": {
+                  "destination-address": "10.56.16.85/32",
+                  "destination-port": "80"
+                },
+                "then": {
+                  "destination-nat": {
+                    "pool": "webserver-pool"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "policies": [
+      {
+        "from-zone": "USERLAN",
+        "to-zone": "untrust",
+        "policy": {
+          "permit-internet": {
+            "match": {
+              "source-address": "any",
+              "destination-address": "any",
+              "application": "any"
+            },
+            "then": {
+              "permit": {}
+            }
+          }
+        }
+      },
+      {
+        "from-zone": "USERLAN",
+        "to-zone": "DMZ",
+        "policy": {
+          "permit-web": {
+            "match": {
+              "source-address": "any",
+              "destination-address": "any",
+              "application": "any"
+            },
+            "then": {
+              "permit": {}
+            }
+          }
+        }
+      },
+      {
+        "from-zone": "untrust",
+        "to-zone": "DMZ",
+        "policy": {
+          "permit-web-dnat": {
+            "match": {
+              "source-address": "any",
+              "destination-address": "webserver",
+              "application": "junos-http"
+            },
+            "then": {
+              "permit": {}
+            }
+          }
+        }
+      }
+    ],
+    "zones": {
+      "security-zone": {
+        "USERLAN": {
+          "host-inbound-traffic": {
+            "system-services": [
+              "all"
+            ]
+          },
+          "interfaces": [
+            "ge-0/0/1.0"
+          ]
+        },
+        "DMZ": {
+          "address-book": {
+            "address": {
+              "webserver": "192.168.4.10/32"
+            }
+          },
+          "host-inbound-traffic": {
+            "system-services": [
+              "ping"
+            ]
+          },
+          "interfaces": [
+            "ge-0/0/2.0"
+          ]
+        },
+        "untrust": {
+          "host-inbound-traffic": {
+            "system-services": [
+              "ping"
+            ]
+          },
+          "interfaces": [
+            "ge-0/0/3.0"
+          ]
+        }
+      }
+    }
+  },
+  "vlans": {
+    "mySwitch1Vlan": {
+      "vlan-id": 4
+    },
+    "mySwitch2Vlan": {
+      "vlan-id": 3
+    }
+  }
+}
