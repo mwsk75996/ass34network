@@ -29,7 +29,8 @@ Konfiguration til SRX240 i JSON: `r2-config.json`.
 | Fil | Indhold |
 |---|---|
 | `r2-config.json` | Hele SRX-konfigurationen (JSON) |
-| topology + HLD | Netværksdiagram og High/Low Level Design — ligger på Google Drive |
+| `topology.svg` | Netværksdiagram (topologi) |
+| HLD | High/Low Level Design — ligger på Google Drive |
 | `testplan.md` / `testplan.png` | Testplan + resultater |
 
 ## Test (kort)
